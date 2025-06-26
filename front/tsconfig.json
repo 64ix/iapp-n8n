@@ -19,6 +19,6 @@
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["src"],
+  "include": ["front/srcp-n8n/src"],
   "references": [{ "path": "./tsconfig.node.json" }]
 }

@@ -50,8 +50,10 @@ export default function App() {
 
   // Form states
   const [name, setName] = useState('');
-  const [jsonData, setJsonData] = useState('');
-  const [isValidJson, setIsValidJson] = useState(true);
+  const [credentialsJson, setCredentialsJson] = useState('');
+  const [workflowsJson, setWorkflowsJson] = useState('');
+  const [isValidCredentials, setIsValidCredentials] = useState(true);
+  const [isValidWorkflows, setIsValidWorkflows] = useState(true);
   const [numberOfAccess, setNumberOfAccess] = useState<number>(1);
   const [userAddress, setUserAddress] = useState<AddressOrEnsName>('');
   const [appAddress, setAppAddress] = useState<AddressOrEnsName>('');
@@ -110,15 +112,21 @@ export default function App() {
   };
 
   // Function to save workflow to localStorage when protected
-  const saveWorkflowToStorage = (address: Address, workflowName: string, workflowData: string) => {
-    const dataCounts = parseWorkflowData(workflowData);
+  const saveWorkflowToStorage = (address: Address, workflowName: string, credentialsData: string, workflowsData: string) => {
+    // Combine credentials and workflows into the final format
+    const combinedData = JSON.stringify({
+      credentials: JSON.parse(credentialsData),
+      workflows: JSON.parse(workflowsData)
+    });
+    
+    const dataCounts = parseWorkflowData(combinedData);
     const newWorkflow: ProtectedWorkflow = {
       address,
       name: workflowName,
       createdAt: new Date().toISOString(),
       data: dataCounts,
       authorizedUsers: [],
-      jsonData: workflowData // Store the original JSON data
+      jsonData: combinedData // Store the combined JSON data
     };
     
     const storedWorkflows = localStorage.getItem('protectedWorkflows');
@@ -157,19 +165,20 @@ export default function App() {
       return;
     }
 
-    if (!jsonData.trim()) {
-      setErrorProtect('Please enter your n8n workflow and credentials data');
+    if (!credentialsJson.trim() || !workflowsJson.trim()) {
+      setErrorProtect('Please enter your credentials and workflows data');
       return;
     }
 
-    if (!isValidJson) {
+    if (!isValidCredentials || !isValidWorkflows) {
       setErrorProtect('Please enter valid JSON data');
       return;
     }
 
-    let parsedData;
+    let parsedCredentials, parsedWorkflows;
     try {
-      parsedData = JSON.parse(jsonData);
+      parsedCredentials = JSON.parse(credentialsJson);
+      parsedWorkflows = JSON.parse(workflowsJson);
     } catch (error) {
       setErrorProtect('Invalid JSON format');
       return;
@@ -197,8 +206,16 @@ export default function App() {
       return obj;
     };
 
-    const compatibleData = convertArraysToObjects(parsedData);
-    const data = { n8nWorkflow: compatibleData };
+    const compatibleCredentials = convertArraysToObjects(parsedCredentials);
+    const compatibleWorkflows = convertArraysToObjects(parsedWorkflows);
+    
+    // Create the combined data structure
+    const combinedData = {
+      credentials: compatibleCredentials,
+      workflows: compatibleWorkflows
+    };
+    
+    const data = { n8nWorkflow: combinedData };
     
     try {
       setLoadingProtect(true);
@@ -210,8 +227,8 @@ export default function App() {
       const newAddress = protectedWorkflowResponse.address as Address;
       setProtectedWorkflow(newAddress);
       
-      // Save the workflow to localStorage
-      saveWorkflowToStorage(newAddress, name || 'Unnamed Workflow', jsonData);
+      // Save the workflow to localStorage with combined data
+      saveWorkflowToStorage(newAddress, name || 'Unnamed Workflow', credentialsJson, workflowsJson);
       
       setErrorProtect('');
     } catch (error) {
@@ -220,54 +237,36 @@ export default function App() {
     setLoadingProtect(false);
   };
 
-  // Auto-fill user and app address when entering workflow-details
-  useEffect(() => {
-    if (currentPage === 'workflow-details') {
-      // Auto-fill user address if empty
-      if (!userAddress && window.ethereum) {
-        window.ethereum.request({ method: 'eth_requestAccounts' }).then((accounts: string[]) => {
-          if (accounts && accounts[0]) setUserAddress(accounts[0]);
-        });
-      }
-      // Auto-fill app address if empty
-      if (!appAddress) setAppAddress(WEB3MAIL_APP_ENS);
-    }
-    // eslint-disable-next-line
-  }, [currentPage]);
-
   const grantAccessSubmit = async () => {
     setErrorGrant('');
-    // Validation
-    if (!protectedWorkflow) {
-      setErrorGrant('No protected workflow selected.');
+    try {
+      checkIsConnected();
+      await checkCurrentChain();
+    } catch (err) {
+      setErrorGrant('Please install MetaMask');
       return;
     }
-    if (!userAddress || userAddress.trim().length === 0) {
-      setErrorGrant('Please enter a user address.');
+
+    if (!userAddress) {
+      setErrorGrant('Please enter a user address');
       return;
     }
-    if (!appAddress || appAddress.trim().length === 0) {
-      setErrorGrant('Please enter an app address.');
-      return;
-    }
-    if (!numberOfAccess || Number(numberOfAccess) < 1) {
-      setErrorGrant('Please enter a valid number of access (minimum 1).');
+    if (!appAddress) {
+      setErrorGrant('Please enter a user address');
       return;
     }
     try {
       setLoadingGrant(true);
-      checkIsConnected();
-      await checkCurrentChain();
       await iExecDataProtectorClient.core.grantAccess({
         protectedData: protectedWorkflow,
         authorizedUser: userAddress,
         authorizedApp: appAddress,
-        numberOfAccess: Number(numberOfAccess),
+        numberOfAccess,
       });
       setAuthorizedUser(userAddress);
-      setErrorGrant('');
-    } catch (error: any) {
-      setErrorGrant(error?.message || String(error));
+      setAppAddress(appAddress);
+    } catch (error) {
+      setErrorGrant(String(error));
     }
     setLoadingGrant(false);
   };
@@ -305,20 +304,37 @@ export default function App() {
   };
 
   // Handlers
-  const handleJsonDataChange = (event: any) => {
+  const handleCredentialsJsonChange = (event: any) => {
     const value = event.target.value;
-    setJsonData(value);
+    setCredentialsJson(value);
     
     if (value.trim() === '') {
-      setIsValidJson(true);
+      setIsValidCredentials(true);
       return;
     }
     
     try {
       JSON.parse(value);
-      setIsValidJson(true);
+      setIsValidCredentials(true);
     } catch (error) {
-      setIsValidJson(false);
+      setIsValidCredentials(false);
+    }
+  };
+
+  const handleWorkflowsJsonChange = (event: any) => {
+    const value = event.target.value;
+    setWorkflowsJson(value);
+    
+    if (value.trim() === '') {
+      setIsValidWorkflows(true);
+      return;
+    }
+    
+    try {
+      JSON.parse(value);
+      setIsValidWorkflows(true);
+    } catch (error) {
+      setIsValidWorkflows(false);
     }
   };
 
@@ -473,21 +489,40 @@ export default function App() {
             )}
             
             <div className="info-box">
-              <strong>Note:</strong> Arrays in your n8n workflow JSON will be automatically converted to objects with numeric keys, and special characters in object keys will be replaced with underscores to ensure compatibility with iExec DataProtector.
+              <strong>Note:</strong> Enter your n8n credentials and workflows in separate JSON blocks. 
+              The system will automatically combine them into the format: <code>{'{"credentials": [...], "workflows": [...]}'}</code>
+              <br />
+              Arrays in your JSON will be automatically converted to objects with numeric keys, and special characters in object keys will be replaced with underscores to ensure compatibility with iExec DataProtector.
             </div>
 
             <div className="form-group">
-              <label>n8n Workflow & Credentials JSON</label>
+              <label>Credentials JSON</label>
               <textarea
                 className="form-control"
-                value={jsonData}
-                placeholder='{"credentials": [...], "workflows": [...]}'
-                onChange={handleJsonDataChange}
+                value={credentialsJson}
+                placeholder='[{"name": "My Credential", "type": "httpBasicAuth", "data": {...}}]'
+                onChange={handleCredentialsJsonChange}
                 rows={8}
               />
-              {!isValidJson && jsonData.trim() !== '' && (
+              {!isValidCredentials && credentialsJson.trim() !== '' && (
                 <div className="error-message">
-                  Please enter valid JSON data
+                  Please enter valid credentials JSON data
+                </div>
+              )}
+            </div>
+
+            <div className="form-group">
+              <label>Workflows JSON</label>
+              <textarea
+                className="form-control"
+                value={workflowsJson}
+                placeholder='[{"name": "My Workflow", "nodes": [...], "connections": {...}}]'
+                onChange={handleWorkflowsJsonChange}
+                rows={8}
+              />
+              {!isValidWorkflows && workflowsJson.trim() !== '' && (
+                <div className="error-message">
+                  Please enter valid workflows JSON data
                 </div>
               )}
             </div>

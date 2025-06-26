@@ -25,23 +25,3 @@ npm ci
 ```sh
 npm run dev
 ```
-
----
-
-## Security & Best Practices
-- **Never commit secrets, private keys, or API keys** to the repository.
-- Use a `.env` file for any local secrets or environment variables. This file is already ignored by git.
-- The `.gitignore` is set up to protect you from accidentally exposing sensitive data.
-- If you add new files that may contain secrets, double-check they are listed in `.gitignore`.
-
-## Project Structure
-- `src/` - Main source code (React, TypeScript)
-- `src/assets/` - Images and static assets
-- `src/utils/` - Utility functions
-- `.gitignore` - Comprehensive ignore rules for security and cleanliness
-
----
-
-## License
-
-MIT (see LICENSE file)
