@@ -27,6 +27,7 @@ Generates protected data for iExec applications by encrypting n8n credentials an
 
    _Use PROTECTED_DATA_0x from Protected Data: { address: 0x_
    ```bash
+   cd ../n8n-iapp/
    EXPERIMENTAL_TDX_APP=true iapp run APP_0x --protectedData PROTECTED_DATA_0x
    ```
 
