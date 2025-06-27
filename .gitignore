@@ -146,3 +146,7 @@ config.local.json
 
 # Local storage backups (if any)
 localStorage_backup.json 
+
+/protectedData_generator/secrets/
+/n8n-iapp/cache/
+/protectedData_generator/package-lock.json
