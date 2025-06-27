@@ -116,7 +116,7 @@ export default function App() {
       // Create combined data structure
       const combinedData = {
         credentials: compatibleCredentials,
-        workflows: compatibleWorkflows
+        workflow: compatibleWorkflows
       };
       
       const data = { n8nWorkflow: combinedData };

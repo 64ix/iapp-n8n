@@ -57,7 +57,7 @@ export const ProtectPage: React.FC<ProtectPageProps> = ({
         
         <div className="info-box">
           <strong>Note:</strong> Enter your n8n credentials and workflows in separate JSON blocks. 
-          The system will automatically combine them into the format: <code>{'{"credentials": [...], "workflows": [...]}'}</code>
+          The system will automatically combine them into the format: <code>{'{"credentials": [...], "workflow": [...]}'}</code>
           <br />
           Arrays in your JSON will be automatically converted to objects with numeric keys, and special characters in object keys will be replaced with underscores to ensure compatibility with iExec DataProtector.
         </div>

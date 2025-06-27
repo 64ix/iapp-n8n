@@ -27,7 +27,7 @@ export const parseWorkflowData = (jsonData: string) => {
   try {
     const parsed = JSON.parse(jsonData);
     const credentialsCount = parsed.credentials ? (Array.isArray(parsed.credentials) ? parsed.credentials.length : 1) : 0;
-    const workflowsCount = parsed.workflows ? (Array.isArray(parsed.workflows) ? parsed.workflows.length : 1) : 0;
+    const workflowsCount = parsed.workflow ? (Array.isArray(parsed.workflow) ? parsed.workflow.length : 1) : 0;
     return { credentials: credentialsCount, workflows: workflowsCount };
   } catch (error) {
     console.error('Error parsing workflow data:', error);
@@ -54,7 +54,7 @@ export const createCombinedWorkflowData = (credentialsJson: string, workflowsJso
     
     return JSON.stringify({
       credentials,
-      workflows
+      workflow: workflows
     });
   } catch (error) {
     throw new Error('Invalid JSON format in credentials or workflows');
