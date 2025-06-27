@@ -31,8 +31,6 @@ Generates protected data for iExec applications by encrypting n8n credentials an
    EXPERIMENTAL_TDX_APP=true iapp run APP_0x --protectedData PROTECTED_DATA_0x
    ```
 
-Use PROTECTED_DATA_0x from Protected Data: { address: 
-
 ## Files
 
 - `n8n_config_manager.sh` - Export/import n8n config
